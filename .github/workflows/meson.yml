@@ -1,0 +1,37 @@
+name: Build and Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install meson and ninja
+      run: |
+        sudo apt update
+        sudo apt install -y meson ninja-build libcmocka-dev
+
+    - name: Run build and tests
+      run: |
+        meson setup builddir
+        meson compile -C builddir
+        meson test -C builddir
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: builddir/meson-logs/testlog.txt
