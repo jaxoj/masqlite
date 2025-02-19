@@ -18,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Install meson and ninja
+    - name: Install meson, ninja and cmocka
       run: |
         sudo apt update
         sudo apt install -y meson ninja-build libcmocka-dev
