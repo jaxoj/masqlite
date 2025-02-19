@@ -1,0 +1,15 @@
+{
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
+    "C_Cpp.default.compileCommands": "/home/manssif/Projects/masqlite/builddir/compile_commands.json",
+    "files.associations": {
+        "cmocka.h": "c",
+        "storage_engine.h": "c",
+        "stdarg.h": "c",
+        "stddef.h": "c",
+        "stdlib.h": "c",
+        "btree.h": "c",
+        "stdbool.h": "c",
+        "cstdlib": "c",
+        "stdio.h": "c"
+    }
+}

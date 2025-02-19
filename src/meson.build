@@ -1,4 +1,4 @@
-sources = ['main.c', 'storage_engine.c']
+sources = ['main.c', 'storage_engine.c', 'btree.c']
 
 include_dir = include_directories('../include')
 

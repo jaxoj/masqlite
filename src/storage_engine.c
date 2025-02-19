@@ -27,6 +27,13 @@ int open_database()
         free_list.list[i] = i;
     }
     free_list.count = MAX_PAGES;
+
+    // Initialize cache entries
+    for (int i = 0; i < MAX_CACHE; i++)
+    {
+        cache[i].page_number = -1;
+    }
+    
     return 0;
 }
 
@@ -84,7 +91,7 @@ int free_page(int page_number)
     return 0;
 }
 
-int read_page_with_cache(int page_number, Page *page)
+int cache_search(int page_number)
 {
     if (cache_count > 0)
     {
@@ -92,10 +99,19 @@ int read_page_with_cache(int page_number, Page *page)
         {
             if (cache[i].page_number == page_number)
             {
-                *page = cache[i].page;
-                return 0;
+                return i;
             }
         }
+    }
+    return -1;
+} 
+
+int read_page_with_cache(int page_number, Page *page)
+{
+    int page_index = cache_search(page_number);
+    if (page_index != -1) {
+        *page = cache[page_index].page;
+        return 0;
     }
 
     int result = read_page(page_number, page);
@@ -110,13 +126,10 @@ int write_page_with_cache(int page_number, const Page *page)
 {
     if (cache_count < MAX_CACHE)
     {
-        for (int i = 0; i < cache_count; i++)
+        int page_index = cache_search(page_number);
+        if (page_index != -1) 
         {
-            if (cache[i].page_number == page_number)
-            {
-                cache[i].page = *page;
-                break;
-            }
+            cache[page_index].page = *page;
         }
     }
     return write_page(page_number, page);

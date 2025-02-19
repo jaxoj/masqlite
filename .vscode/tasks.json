@@ -1,0 +1,35 @@
+{
+    "tasks": [
+        {
+            "label": "Configure Meson",
+            "type": "shell",
+            "command": "meson setup builddir --reconfigure --buildtype=debug",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "meson compile -C builddir",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "meson test --verbose -C builddir",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        }
+    ],
+    "version": "2.0.0"
+}
