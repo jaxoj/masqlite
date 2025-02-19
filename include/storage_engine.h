@@ -40,6 +40,9 @@ int read_page(int page_number, Page *page);
 // writes `PAGE_SIZE` of bytes into the datafile starting from position `page_number`.
 int write_page(int page_number, const Page *page);
 
+// returns the index of the page if it exists.
+int cache_search(int page_number);
+
 // write the page in the appropriate free space inside the datafile.
 // @return `page_number`
 int allocate_page(Page *page);

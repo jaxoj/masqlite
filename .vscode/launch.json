@@ -1,0 +1,40 @@
+{
+  "configurations": [
+    {
+      "name": "Debug masqlite",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${input:testExecutable}",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "Build Project",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "internalConsoleOptions": "openOnSessionStart",
+      "logging": { "trace": true, "traceResponse": true }
+    }
+  ],
+  "inputs": [
+    {
+        "id": "testExecutable",
+        "type": "pickString",
+        "description": "Choose the test executable to debug",
+        "options": [
+            "${workspaceFolder}/builddir/test/test_storage_engine",
+            "${workspaceFolder}/builddir/test/test_btree"
+        ],
+        "default": "${workspaceFolder}/builddir/test/test_btree"
+    }
+  ],
+  "version": "0.2.0"
+}
