@@ -8,8 +8,8 @@
 
 typedef struct BTreeNode
 {
-    int *keys;
-    struct BTreeNode **children;
+    int keys[MAX_KEYS];
+    struct BTreeNode *children[BTREE_ORDER];
     int num_keys;
     bool is_leaf;
 } BTreeNode;

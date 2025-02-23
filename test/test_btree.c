@@ -197,19 +197,23 @@ static void test_btree_merge_nodes(void **state)
     (void) state;
     BTreeNode *root = new_node(0, true);
     btree_insert(&root, 20);
+    root->is_leaf = false;
 
-    root->children[0] = new_node(0, true);
-    btree_insert(&root->children[0], 10);
+    BTreeNode *child = new_node(0, true);
+    btree_insert(&child, 10);
 
-    root->children[1] = new_node(0, true);
-    btree_insert(&root->children[1], 25);
+    BTreeNode *sibling = new_node(0, true);
+    btree_insert(&sibling, 25);
+
+    root->children[0] = child;
+    root->children[1] = sibling;
 
     btree_merge_nodes(root, 0);
 
-    assert_int_equal(root->children[0]->num_keys, 3);
-    assert_int_equal(root->children[0]->keys[0], 10);
-    assert_int_equal(root->children[0]->keys[1], 20);
-    assert_int_equal(root->children[0]->keys[2], 25);
+    assert_int_equal(child->num_keys, 3);
+    assert_int_equal(child->keys[0], 10);
+    assert_int_equal(child->keys[1], 20);
+    assert_int_equal(child->keys[2], 25);
 
     free_node(root);
 }
@@ -362,6 +366,7 @@ static void test_btree_delete_all_keys(void **state)
     }
 
     assert_null(root);
+    free(root);
 }
 
 int main(void)

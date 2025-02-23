@@ -10,9 +10,6 @@ BTreeNode *new_node(int num_keys, bool is_leaf)
     node->num_keys = num_keys;
     node->is_leaf = is_leaf;
 
-    node->keys = malloc((BTREE_ORDER - 1) * sizeof(int));
-    node->children = malloc(BTREE_ORDER * sizeof(BTreeNode *));
-
     for (int i = 0; i < BTREE_ORDER; i++)
     {
         node->children[i] = NULL;
@@ -39,8 +36,6 @@ void free_node(BTreeNode *node)
         }
     }
 
-    free(node->keys);
-    free(node->children);
     free(node);
 }
 
@@ -141,7 +136,7 @@ bool btree_search(BTreeNode *root, int key)
     {
         return false;
     }
-    
+
     int i = 0;
     while (i < root->num_keys && root->keys[i] < key)
     {
