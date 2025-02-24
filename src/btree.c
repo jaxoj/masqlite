@@ -80,23 +80,25 @@ void btree_split_child(BTreeNode *parent, int i)
     parent->num_keys++;
 }
 
-void btree_insert_nonfull(BTreeNode *node, int key)
+void btree_insert_nonfull(BTreeNode *node, int key, int value)
 {
+    KeyValuePair pair = {.key = key, .value = value};
+
     int index = node->num_keys - 1;
     if (node->is_leaf)
     {
-        while (index >= 0 && key < node->keys[index])
+        while (index >= 0 && key < node->keys[index].key)
         {
             node->keys[index + 1] = node->keys[index];
             index--;
         }
-        node->keys[index + 1] = key;
+        node->keys[index + 1] = pair;
         node->num_keys++;
     }
     else
     {
         // Find the child to insert the key into
-        while (index >= 0 && key < node->keys[index])
+        while (index >= 0 && key < node->keys[index].key)
         {
             index--;
         }
@@ -105,32 +107,32 @@ void btree_insert_nonfull(BTreeNode *node, int key)
         if (node->children[index]->num_keys == MAX_KEYS)
         {
             btree_split_child(node, index);
-            if (key > node->keys[index])
+            if (key > node->keys[index].key)
             {
                 index++;
             }
         }
-        btree_insert_nonfull(node->children[index], key);
+        btree_insert_nonfull(node->children[index], key, value);
     }
 }
 
-void btree_insert(BTreeNode **root, int key)
+void btree_insert(BTreeNode **root, int key, int value)
 {
     if ((*root)->num_keys == MAX_KEYS)
     {
         BTreeNode *new_root = new_node(0, false);
         new_root->children[0] = *root;
         btree_split_child(new_root, 0);
-        btree_insert_nonfull(new_root, key);
+        btree_insert_nonfull(new_root, key, value);
         *root = new_root;
     }
     else
     {
-        btree_insert_nonfull(*root, key);
+        btree_insert_nonfull(*root, key, value);
     }
 }
 
-bool btree_search(BTreeNode *root, int key)
+bool btree_search(BTreeNode *root, int key, int *value)
 {
     if (root == NULL)
     {
@@ -138,13 +140,17 @@ bool btree_search(BTreeNode *root, int key)
     }
 
     int i = 0;
-    while (i < root->num_keys && root->keys[i] < key)
+    while (i < root->num_keys && root->keys[i].key < key)
     {
         i++;
     }
 
-    if (i < root->num_keys && root->keys[i] == key)
+    if (i < root->num_keys && root->keys[i].key == key)
     {
+        if (value != NULL)
+        {
+            *value = root->keys[i].value; 
+        }
         return true;
     }
 
@@ -153,13 +159,13 @@ bool btree_search(BTreeNode *root, int key)
         return false;
     }
 
-    return btree_search(root->children[i], key);
+    return btree_search(root->children[i], key, value);
 }
 
 int btree_find_key_index(BTreeNode *node, int key)
 {
     int index = 0;
-    while (index < node->num_keys && node->keys[index] < key)
+    while (index < node->num_keys && node->keys[index].key < key)
     {
         index++;
     }
@@ -169,7 +175,7 @@ int btree_find_key_index(BTreeNode *node, int key)
 int btree_delete(BTreeNode **root, int key)
 {
     BTreeNode *ref = *root;
-    if (root == NULL || !btree_search(ref, key))
+    if (root == NULL || !btree_search(ref, key, NULL))
     {
         return -1;
     }
@@ -197,7 +203,7 @@ void btree_remove(BTreeNode *node, int key)
 {
     int index = btree_find_key_index(node, key);
 
-    if (index < node->num_keys && key == node->keys[index])
+    if (index < node->num_keys && key == node->keys[index].key)
     {
         if (node->is_leaf)
         {
@@ -255,13 +261,13 @@ void btree_remove_from_non_leaf(BTreeNode *node, int index)
         if (child->is_leaf)
         {
             node->keys[index] = child->keys[child->num_keys - 1];
-            btree_delete(&child, node->keys[index]);
+            btree_delete(&child, node->keys[index].key);
         }
         else
         {
-            int pred = btree_find_predecessor(child, index);
+            KeyValuePair pred = btree_find_predecessor(child, index);
             node->keys[index] = pred;
-            btree_delete(&child, pred);
+            btree_delete(&child, pred.key);
         }
     }
     else if (sibling->num_keys >= MIN_KEYS)
@@ -269,24 +275,24 @@ void btree_remove_from_non_leaf(BTreeNode *node, int index)
         if (sibling->is_leaf)
         {
             node->keys[index] = sibling->keys[0];
-            btree_delete(&sibling, node->keys[index]);
+            btree_delete(&sibling, node->keys[index].key);
         }
         else
         {
 
-            int succ = btree_find_successor(sibling, index);
+            KeyValuePair succ = btree_find_successor(sibling, index);
             node->keys[index] = succ;
-            btree_delete(&sibling, succ);
+            btree_delete(&sibling, succ.key);
         }
     }
     else
     {
         btree_merge_nodes(node, index);
-        btree_delete(&child, node->keys[index]);
+        btree_delete(&child, node->keys[index].key);
     }
 }
 
-int btree_find_predecessor(BTreeNode *node, int index)
+KeyValuePair btree_find_predecessor(BTreeNode *node, int index)
 {
     BTreeNode *current = node->children[index];
     while (!current->is_leaf)
@@ -296,7 +302,7 @@ int btree_find_predecessor(BTreeNode *node, int index)
     return current->keys[current->num_keys - 1];
 }
 
-int btree_find_successor(BTreeNode *node, int index)
+KeyValuePair btree_find_successor(BTreeNode *node, int index)
 {
     BTreeNode *current = node->children[index + 1];
     while (!current->is_leaf)

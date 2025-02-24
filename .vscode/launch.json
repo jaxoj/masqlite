@@ -31,9 +31,10 @@
         "description": "Choose the test executable to debug",
         "options": [
             "${workspaceFolder}/builddir/test/test_storage_engine",
-            "${workspaceFolder}/builddir/test/test_btree"
+            "${workspaceFolder}/builddir/test/test_btree",
+            "${workspaceFolder}/builddir/test/test_virtual_machine"
         ],
-        "default": "${workspaceFolder}/builddir/test/test_btree"
+        "default": "${workspaceFolder}/builddir/test/test_virtual_machine"
     }
   ],
   "version": "0.2.0"

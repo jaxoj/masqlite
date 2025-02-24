@@ -6,9 +6,14 @@
 #define MAX_KEYS (BTREE_ORDER - 1)
 #define MIN_KEYS (MAX_KEYS / 2)
 
+typedef struct KeyValuePair {
+    int key;
+    int value;
+} KeyValuePair;
+
 typedef struct BTreeNode
 {
-    int keys[MAX_KEYS];
+    KeyValuePair keys[MAX_KEYS];
     struct BTreeNode *children[BTREE_ORDER];
     int num_keys;
     bool is_leaf;
@@ -24,12 +29,12 @@ void free_node(BTreeNode *nodee);
 void btree_split_child(BTreeNode *node, int i);
 
 // insert to a node which didn't reach the maximum number of keys yet.
-void btree_insert_nonfull(BTreeNode *node, int key);
+void btree_insert_nonfull(BTreeNode *node, int key, int value);
 
-void btree_insert(BTreeNode **root, int key);
+void btree_insert(BTreeNode **root, int key, int value);
 
 // searches for the given `key` and return whether it exsits in the list or not.
-bool btree_search(BTreeNode *root, int key);
+bool btree_search(BTreeNode *root, int key, int *value);
 
 // return and integer index of the key in keys list.
 // otherwise the returned interger will be either greater than the number of keys in the node,
@@ -41,10 +46,10 @@ int btree_find_key_index(BTreeNode *node, int key);
 void btree_remove_from_leaf(BTreeNode *node, int index);
 
 // finds the most right key in a tree rooted with the child of position `index` in `node`.
-int btree_find_predecessor(BTreeNode *node, int index);
+KeyValuePair btree_find_predecessor(BTreeNode *node, int index);
 
 // finds the most left key in a tree rooted with the child of position `index` + 1 in `node`.
-int btree_find_successor(BTreeNode *node, int index);
+KeyValuePair btree_find_successor(BTreeNode *node, int index);
 
 // merges the key of position `index` and keys of node of position `index` + 1 into child of position `index`
 void btree_merge_nodes(BTreeNode *node, int index);
