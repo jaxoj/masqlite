@@ -16,7 +16,7 @@ VM *new_vm()
     }
     vm->sp = -1;
     vm->ip = 0;
-    vm->halted = false;
+    vm->halted = 0;
     return vm;
 }
 

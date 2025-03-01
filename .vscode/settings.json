@@ -10,6 +10,8 @@
         "btree.h": "c",
         "stdbool.h": "c",
         "cstdlib": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "any": "c",
+        "string.h": "c"
     }
 }

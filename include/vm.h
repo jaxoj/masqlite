@@ -28,7 +28,6 @@ typedef enum OperationCode{
     OP_SELECT,
     OP_INSERT,
     OP_UPDATE,
-    OP_DELETE
 } OperationCode;
 
 typedef struct Instruction {

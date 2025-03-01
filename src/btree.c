@@ -3,11 +3,49 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
-BTreeNode *new_node(int num_keys, bool is_leaf)
+bool key_greater_than(PairType type, Key key, Key than)
+{
+    if (type != INT && type != STR)
+    {
+        return 0;
+    }
+    if (type == STR)
+    {
+        return strcmp(key.string, than.string) > 0;
+    }
+    return key.integer > than.integer;
+}
+bool key_less_than(PairType type, Key key, Key than)
+{
+    if (type != INT && type != STR)
+    {
+        return 0;
+    }
+    if (type == STR)
+    {
+        return strcmp(key.string, than.string) < 0;
+    }
+    return key.integer < than.integer;
+}
+bool key_equal_to(PairType type, Key key, Key to)
+{
+    if (type != INT && type != STR)
+    {
+        return 0;
+    }
+    if (type == STR)
+    {
+        return strcmp(key.string, to.string) == 0;
+    }
+    return key.integer == to.integer;
+}
+
+BTreeNode *new_node(int num_pairs, bool is_leaf)
 {
     BTreeNode *node = malloc(sizeof(BTreeNode));
-    node->num_keys = num_keys;
+    node->num_pairs = num_pairs;
     node->is_leaf = is_leaf;
 
     for (int i = 0; i < BTREE_ORDER; i++)
@@ -27,7 +65,7 @@ void free_node(BTreeNode *node)
 
     if (!node->is_leaf)
     {
-        for (int i = 0; i <= node->num_keys; i++)
+        for (int i = 0; i <= node->num_pairs; i++)
         {
             if (node->children[i] != NULL)
             {
@@ -39,405 +77,131 @@ void free_node(BTreeNode *node)
     free(node);
 }
 
-void btree_split_child(BTreeNode *parent, int i)
+void btree_split_child(BTreeNode *parent, int index)
 {
-    BTreeNode *child = parent->children[i];
-    int mid = (BTREE_ORDER - 1) / 2;
+    BTreeNode *child = parent->children[index];
+    int mid = (MAX_PAIRS % 2 == 0) ? MAX_PAIRS / 2 : (MAX_PAIRS + 1) / 2;
 
-    BTreeNode *new_child = new_node(BTREE_ORDER / 2 - 1, child->is_leaf);
+    BTreeNode *new_child = new_node(mid, child->is_leaf);
 
     // Move half of keys from child to new_child
-    for (int j = 0; j < new_child->num_keys; j++)
+    for (int j = 0; j < new_child->num_pairs; j++)
     {
-        new_child->keys[j] = child->keys[j + mid + 1];
+        new_child->pairs[j] = child->pairs[j + mid - 1];
     }
 
     // Move children if not a leaf
     if (!child->is_leaf)
     {
-        for (int j = 0; j <= new_child->num_keys; j++)
+        for (int j = 0; j <= new_child->num_pairs; j++)
         {
-            new_child->children[j] = child->children[j + mid + 1];
+            new_child->children[j] = child->children[j + mid - 1];
         }
+    }
+    else
+    {
+        child->next = new_child;
     }
 
     // Reduce number of keys in the original child
-    child->num_keys = mid;
+    child->num_pairs -= mid;
 
     // Shift parent's children to make room for new_child
-    for (int j = parent->num_keys; j >= i + 1; j--)
+    for (int j = parent->num_pairs; j >= index + 1; j--)
     {
         parent->children[j + 1] = parent->children[j];
     }
-    parent->children[i + 1] = new_child;
+    parent->children[index + 1] = new_child;
 
     // Move parent's keys
-    for (int j = parent->num_keys - 1; j >= i; j--)
+    for (int j = parent->num_pairs - 1; j >= index; j--)
     {
-        parent->keys[j + 1] = parent->keys[j];
+        parent->pairs[j + 1] = parent->pairs[j];
     }
-    parent->keys[i] = child->keys[mid]; // Move the median key up to the parent
-    parent->num_keys++;
+    parent->pairs[index].key_type = child->pairs[mid - 1].key_type; // Move the median key up to the parent
+    parent->pairs[index].key = child->pairs[mid - 1].key;
+    parent->num_pairs++;
 }
 
-void btree_insert_nonfull(BTreeNode *node, int key, int value)
+void btree_insert_nonfull(BTreeNode *node, Pair pair)
 {
-    KeyValuePair pair = {.key = key, .value = value};
-
-    int index = node->num_keys - 1;
+    int index = node->num_pairs - 1;
     if (node->is_leaf)
     {
-        while (index >= 0 && key < node->keys[index].key)
+        while (index >= 0 && key_less_than(pair.key_type, pair.key, node->pairs[index].key))
         {
-            node->keys[index + 1] = node->keys[index];
+            node->pairs[index + 1] = node->pairs[index];
             index--;
         }
-        node->keys[index + 1] = pair;
-        node->num_keys++;
+        node->pairs[index + 1] = pair;
+        node->num_pairs++;
     }
     else
     {
         // Find the child to insert the key into
-        while (index >= 0 && key < node->keys[index].key)
+        while (index >= 0 && key_less_than(pair.key_type, pair.key, node->pairs[index].key))
         {
             index--;
         }
         index++;
         // if the child is full split it.
-        if (node->children[index]->num_keys == MAX_KEYS)
+        if (node->children[index]->num_pairs == MAX_PAIRS)
         {
             btree_split_child(node, index);
-            if (key > node->keys[index].key)
+            if (key_greater_than(pair.key_type, pair.key, node->pairs[index].key))
             {
                 index++;
             }
         }
-        btree_insert_nonfull(node->children[index], key, value);
+        btree_insert_nonfull(node->children[index], pair);
     }
 }
 
-void btree_insert(BTreeNode **root, int key, int value)
+void btree_insert(BTreeNode **root, Pair pair)
 {
-    if ((*root)->num_keys == MAX_KEYS)
+    if ((*root)->num_pairs == MAX_PAIRS)
     {
-        BTreeNode *new_root = new_node(0, false);
+        BTreeNode *new_root = new_node(0, 0);
         new_root->children[0] = *root;
         btree_split_child(new_root, 0);
-        btree_insert_nonfull(new_root, key, value);
         *root = new_root;
+
+        btree_insert_nonfull(*root, pair);
     }
     else
     {
-        btree_insert_nonfull(*root, key, value);
+        btree_insert_nonfull(*root, pair);
     }
 }
 
-bool btree_search(BTreeNode *root, int key, int *value)
+bool btree_search(BTreeNode *root, Pair *pair)
 {
     if (root == NULL)
     {
-        return false;
+        return 0;
     }
 
     int i = 0;
-    while (i < root->num_keys && root->keys[i].key < key)
+    while (i < root->num_pairs && key_less_than(root->pairs[i].key_type, root->pairs[i].key, pair->key))
     {
         i++;
     }
 
-    if (i < root->num_keys && root->keys[i].key == key)
-    {
-        if (value != NULL)
-        {
-            *value = root->keys[i].value; 
-        }
-        return true;
-    }
-
     if (root->is_leaf)
     {
-        return false;
-    }
-
-    return btree_search(root->children[i], key, value);
-}
-
-int btree_find_key_index(BTreeNode *node, int key)
-{
-    int index = 0;
-    while (index < node->num_keys && node->keys[index].key < key)
-    {
-        index++;
-    }
-    return index;
-}
-
-int btree_delete(BTreeNode **root, int key)
-{
-    BTreeNode *ref = *root;
-    if (root == NULL || !btree_search(ref, key, NULL))
-    {
-        return -1;
-    }
-
-    btree_remove(*root, key);
-
-    if (ref->num_keys == 0)
-    {
-        BTreeNode *tmp = *root;
-        if (!ref->is_leaf)
+        if (i < root->num_pairs && key_equal_to(pair->key_type, pair->key, root->pairs[i].key))
         {
-            *root = ref->children[0];
+            pair->value_type = root->pairs[i].value_type;
+            pair->value = root->pairs[i].value;
+            return 1;
         }
-        else
-        {
-            *root = NULL;
-        }
-        free(tmp);
+        return 0;
     }
 
-    return 0;
-}
-
-void btree_remove(BTreeNode *node, int key)
-{
-    int index = btree_find_key_index(node, key);
-
-    if (index < node->num_keys && key == node->keys[index].key)
+    if (i < root->num_pairs && key_equal_to(pair->key_type, pair->key, root->pairs[i].key))
     {
-        if (node->is_leaf)
-        {
-            btree_remove_from_leaf(node, index);
-        }
-        else
-        {
-            btree_remove_from_non_leaf(node, index);
-        }
-    }
-    else
-    {
-        if (node->is_leaf)
-        {
-            return;
-        }
-
-        // Check if the key is in the subtree rooted with the last child
-        int flag = ((index == node->num_keys) ? 1 : 0);
-
-        // If the child where the key is supposed to exist has less than the minimum keys, fill that child
-        if (node->children[index]->num_keys < MIN_KEYS + 1)
-        {
-            btree_fill(node, index);
-        }
-
-        // If the last child has been merged, it must have merged with the previous child, so we recurse on the (index-1)th child
-        if (flag && index > node->num_keys)
-        {
-            btree_remove(node->children[index - 1], key);
-        }
-        else
-        {
-            btree_remove(node->children[index], key);
-        }
-    }
-}
-
-void btree_remove_from_leaf(BTreeNode *node, int index)
-{
-    for (int i = index; i < node->num_keys - 1; i++)
-    {
-        node->keys[i] = node->keys[i + 1];
-    }
-    node->num_keys--;
-}
-
-void btree_remove_from_non_leaf(BTreeNode *node, int index)
-{
-    BTreeNode *child = node->children[index];
-    BTreeNode *sibling = node->children[index + 1];
-
-    if (child->num_keys >= MIN_KEYS)
-    {
-        if (child->is_leaf)
-        {
-            node->keys[index] = child->keys[child->num_keys - 1];
-            btree_delete(&child, node->keys[index].key);
-        }
-        else
-        {
-            KeyValuePair pred = btree_find_predecessor(child, index);
-            node->keys[index] = pred;
-            btree_delete(&child, pred.key);
-        }
-    }
-    else if (sibling->num_keys >= MIN_KEYS)
-    {
-        if (sibling->is_leaf)
-        {
-            node->keys[index] = sibling->keys[0];
-            btree_delete(&sibling, node->keys[index].key);
-        }
-        else
-        {
-
-            KeyValuePair succ = btree_find_successor(sibling, index);
-            node->keys[index] = succ;
-            btree_delete(&sibling, succ.key);
-        }
-    }
-    else
-    {
-        btree_merge_nodes(node, index);
-        btree_delete(&child, node->keys[index].key);
-    }
-}
-
-KeyValuePair btree_find_predecessor(BTreeNode *node, int index)
-{
-    BTreeNode *current = node->children[index];
-    while (!current->is_leaf)
-    {
-        current = current->children[current->num_keys];
-    }
-    return current->keys[current->num_keys - 1];
-}
-
-KeyValuePair btree_find_successor(BTreeNode *node, int index)
-{
-    BTreeNode *current = node->children[index + 1];
-    while (!current->is_leaf)
-    {
-        current = current->children[0];
-    }
-    return current->keys[0];
-}
-
-void btree_merge_nodes(BTreeNode *parent, int index)
-{
-    BTreeNode *child = parent->children[index];
-    BTreeNode *sibling = parent->children[index + 1];
-
-    // Move the key from parent to child
-    child->keys[MIN_KEYS] = parent->keys[index];
-
-    // Move keys from sibling to child
-    for (int i = 0; i < sibling->num_keys; i++)
-    {
-        child->keys[MIN_KEYS + 1 + i] = sibling->keys[i];
+        return btree_search(root->children[i + 1], pair);
     }
 
-    // Move children from sibling to child
-    if (!child->is_leaf)
-    {
-        for (int i = 0; i <= sibling->num_keys; i++)
-        {
-            child->children[MIN_KEYS + 1 + i] = sibling->children[i];
-        }
-    }
-
-    // Update the number of keys in the child
-    child->num_keys += sibling->num_keys + 1;
-
-    // Move keys and children to the parent to fill the gap
-    for (int i = index + 1; i < parent->num_keys; i++)
-    {
-        parent->keys[i - 1] = parent->keys[i];
-    }
-    for (int i = index + 2; i <= parent->num_keys; i++)
-    {
-        parent->children[i - 1] = parent->children[i];
-    }
-
-    parent->num_keys--;
-
-    free(sibling);
-}
-
-void btree_fill(BTreeNode *node, int index)
-{
-    if (index != 0 && node->children[index - 1]->num_keys >= MIN_KEYS + 1)
-    {
-        btree_borrow_from_prev(node, index);
-    }
-    else if (index != node->num_keys && node->children[index + 1]->num_keys >= MIN_KEYS + 1)
-    {
-        btree_borrow_from_next(node, index);
-    }
-    else
-    {
-        if (index != node->num_keys)
-        {
-            btree_merge_nodes(node, index);
-        }
-        else
-        {
-            btree_merge_nodes(node, index - 1);
-        }
-    }
-}
-
-void btree_borrow_from_prev(BTreeNode *node, int index)
-{
-    BTreeNode *child = node->children[index];
-    BTreeNode *sibling = node->children[index - 1];
-
-    // Move all keys and children in the child node one step forward
-    for (int i = child->num_keys - 1; i >= 0; i--)
-    {
-        child->keys[i + 1] = child->keys[i];
-    }
-    if (!child->is_leaf)
-    {
-        for (int i = child->num_keys; i >= 0; i--)
-        {
-            child->children[i + 1] = child->children[i];
-        }
-    }
-
-    // Move the key from the parent to the child
-    child->keys[0] = node->keys[index - 1];
-
-    if (!child->is_leaf)
-    {
-        child->children[0] = sibling->children[sibling->num_keys];
-    }
-
-    // Move the key from the sibling to the parent
-    node->keys[index - 1] = sibling->keys[sibling->num_keys - 1];
-
-    child->num_keys++;
-    sibling->num_keys--;
-}
-
-void btree_borrow_from_next(BTreeNode *node, int index)
-{
-    BTreeNode *child = node->children[index];
-    BTreeNode *sibling = node->children[index + 1];
-
-    // Move the key from the parent to the child
-    child->keys[child->num_keys] = node->keys[index];
-
-    if (!child->is_leaf)
-    {
-        child->children[child->num_keys + 1] = sibling->children[0];
-    }
-
-    // Move the first key from the sibling to the parent
-    node->keys[index] = sibling->keys[0];
-
-    // Move all keys and children in the sibling node one step backward
-    for (int i = 1; i < sibling->num_keys; ++i)
-    {
-        sibling->keys[i - 1] = sibling->keys[i];
-    }
-    if (!sibling->is_leaf)
-    {
-        for (int i = 1; i <= sibling->num_keys; ++i)
-        {
-            sibling->children[i - 1] = sibling->children[i];
-        }
-    }
-
-    child->num_keys++;
-    sibling->num_keys--;
+    return btree_search(root->children[i], pair);
 }
