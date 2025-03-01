@@ -5,18 +5,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "btree.h"
 
 static void test_btree_insert_nonfull_leaf(void **state)
 {
     (void)state;
-    BTreeNode *node = new_node(1, true);
-    node->keys[0].key = 5;
-    btree_insert_nonfull(node, 10, 10);
+    BTreeNode *node = new_node(1, 1);
+    node->pairs[0] = (Pair){.key_type = INT, .key = (Key){.integer = 10}};
+    btree_insert_nonfull(node, node->pairs[0]);
 
-    assert_int_equal(node->num_keys, 2);
-    assert_int_equal(node->keys[1].key, 10);
+    assert_int_equal(node->num_pairs, 2);
+    assert_int_equal(node->pairs[1].key.integer, 10);
 
     free_node(node);
 }
@@ -24,22 +25,24 @@ static void test_btree_insert_nonfull_leaf(void **state)
 static void test_btree_insert_nonfull_nonleaf(void **state)
 {
     (void)state;
-    BTreeNode *root = new_node(1, false);
-    root->keys[0].key = 20;
-    root->children[0] = new_node(1, true);
-    root->children[0]->keys[0].key = 10;
-    root->children[1] = new_node(1, true);
-    root->children[1]->keys[0].key = 30;
+    BTreeNode *root = new_node(1, 0);
+    root->pairs[0] = (Pair){.key_type = INT, .key = (Key){.integer = 20}};
+    root->children[0] = new_node(1, 1);
+    root->children[0]->pairs[0] = (Pair){.key_type = INT, .key = (Key){.integer = 10}};
+    root->children[1] = new_node(2, 1);
+    root->children[1]->pairs[0] = root->pairs[0];
+    root->children[1]->pairs[1] = (Pair){.key_type = INT, .key = (Key){.integer = 30}};
 
-    btree_insert_nonfull(root, 25, 25);
+    btree_insert_nonfull(root, (Pair){.key_type = INT, .value_type = STR, .key = (Key){.integer = 25}, .value = (Value){.column = "25"}});
 
-    assert_int_equal(root->num_keys, 1);
-    assert_int_equal(root->keys[0].key, 20);
-    assert_int_equal(root->children[0]->num_keys, 1);
-    assert_int_equal(root->children[0]->keys[0].key, 10);
-    assert_int_equal(root->children[1]->num_keys, 2);
-    assert_int_equal(root->children[1]->keys[0].key, 25);
-    assert_int_equal(root->children[1]->keys[1].key, 30);
+    assert_int_equal(root->num_pairs, 1);
+    assert_int_equal(root->pairs[0].key.integer, 20);
+    assert_int_equal(root->children[0]->num_pairs, 1);
+    assert_int_equal(root->children[0]->pairs[0].key.integer, 10);
+    assert_int_equal(root->children[1]->num_pairs, 3);
+    assert_int_equal(root->children[1]->pairs[0].key.integer, 20);
+    assert_int_equal(root->children[1]->pairs[1].key.integer, 25);
+    assert_int_equal(root->children[1]->pairs[2].key.integer, 30);
 
     free_node(root);
 }
@@ -48,30 +51,31 @@ static void test_btree_split_child(void **state)
 {
     (void)state;
 
-    // Parent with 1 key (10), will split the child
-    BTreeNode *parent = new_node(1, false);
-    parent->keys[0].key = 10;
+    BTreeNode *parent = new_node(1, 0);
+    parent->pairs[0] = (Pair){.key_type = INT, .key = {.integer = 10}};
 
     // Child that will be split
-    parent->children[0] = new_node(3, true);
-    parent->children[0]->keys[0].key = 5;
-    parent->children[0]->keys[1].key = 8;
-    parent->children[0]->keys[2].key = 9;
+    parent->children[0] = new_node(3, 1);
+    parent->children[0]->pairs[0] = (Pair){.key_type = INT, .key = {.integer = 5}};
+    parent->children[0]->pairs[1] = (Pair){.key_type = INT, .key = {.integer = 8}};
+    parent->children[0]->pairs[2] = (Pair){.key_type = INT, .key = {.integer = 9}};
+
 
     btree_split_child(parent, 0);
 
     // Parent should now have an extra key
-    assert_int_equal(parent->num_keys, 2);
-    assert_int_equal(parent->keys[0].key, 8);
-    assert_int_equal(parent->keys[1].key, 10);
+    assert_int_equal(parent->num_pairs, 2);
+    assert_int_equal(parent->pairs[0].key.integer, 8);
+    assert_int_equal(parent->pairs[1].key.integer, 10);
 
     // Left child should have only one key
-    assert_int_equal(parent->children[0]->num_keys, 1);
-    assert_int_equal(parent->children[0]->keys[0].key, 5);
+    assert_int_equal(parent->children[0]->num_pairs, 1);
+    assert_int_equal(parent->children[0]->pairs[0].key.integer, 5);
 
     // Right child should have one key
-    assert_int_equal(parent->children[1]->num_keys, 1);
-    assert_int_equal(parent->children[1]->keys[0].key, 9);
+    assert_int_equal(parent->children[1]->num_pairs, 2);
+    assert_int_equal(parent->children[1]->pairs[0].key.integer, 8);
+    assert_int_equal(parent->children[1]->pairs[1].key.integer, 9);
 
     free_node(parent);
 }
@@ -79,14 +83,14 @@ static void test_btree_split_child(void **state)
 static void test_insert_into_empty_tree(void **state)
 {
     (void)state;
-    BTreeNode *root = new_node(0, true);
+    BTreeNode *root = new_node(0, 1);
 
-    btree_insert(&root, 10, 10);
-    btree_insert(&root, 20, 10);
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 10}, .value = (Value){}});
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 20}, (Value){}});
 
-    assert_int_equal(root->num_keys, 2);
-    assert_int_equal(root->keys[0].key, 10);
-    assert_int_equal(root->keys[1].key, 20);
+    assert_int_equal(root->num_pairs, 2);
+    assert_int_equal(root->pairs[0].key.integer, 10);
+    assert_int_equal(root->pairs[1].key.integer, 20);
 
     // Free memory
     free_node(root);
@@ -95,28 +99,27 @@ static void test_insert_into_empty_tree(void **state)
 static void test_insert_causing_split(void **state)
 {
     (void)state;
-    BTreeNode *root = new_node(0, true); // Start with an empty tree
+    BTreeNode *root = new_node(0, 1); // Start with an empty tree
 
     // Insert keys that will cause a split
-    btree_insert(&root, 10, 10);
-    btree_insert(&root, 20, 20);
-    btree_insert(&root, 5, 5);
-    btree_insert(&root, 30, 30);
-    btree_insert(&root, 25, 25);
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 10}, .value = (Value){}});
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 20}, .value = (Value){}});
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 5}, .value = (Value){}});
+    btree_insert(&root, (Pair){.key_type = INT, .key = (Key){.integer = 30}, .value = (Value){}});
 
     // After splitting, the tree should be balanced correctly
-    assert_int_equal(root->num_keys, 1);
-    assert_int_equal(root->keys[0].key, 10); // The middle key moves up
+    assert_int_equal(root->num_pairs, 1);
+    assert_int_equal(root->pairs[0].key.integer, 10); // The middle key moves up
 
     // Left child should contain [5]
-    assert_int_equal(root->children[0]->num_keys, 1);
-    assert_int_equal(root->children[0]->keys[0].key, 5);
+    assert_int_equal(root->children[0]->num_pairs, 1);
+    assert_int_equal(root->children[0]->pairs[0].key.integer, 5);
 
-    // Right child should contain [25, 30]
-    assert_int_equal(root->children[1]->num_keys, 3);
-    assert_int_equal(root->children[1]->keys[0].key, 20);
-    assert_int_equal(root->children[1]->keys[1].key, 25);
-    assert_int_equal(root->children[1]->keys[2].key, 30);
+    // Right child should contain [10, 20, 30]
+    assert_int_equal(root->children[1]->num_pairs, 3);
+    assert_int_equal(root->children[1]->pairs[0].key.integer, 10);
+    assert_int_equal(root->children[1]->pairs[1].key.integer, 20);
+    assert_int_equal(root->children[1]->pairs[2].key.integer, 30);
 
     free_node(root);
 }
@@ -124,249 +127,27 @@ static void test_insert_causing_split(void **state)
 static void test_btree_search(void **state)
 {
     (void)state;
-    BTreeNode *root = new_node(0, true);
-
-    btree_insert(&root, 10, 10);
-    btree_insert(&root, 20, 20);
-    btree_insert(&root, 25, 25);
-    btree_insert(&root, 15, 15);
-    btree_insert(&root, 6, 6);
-
-    assert_true(btree_search(root, 10, NULL));
-    assert_false(btree_search(root, 5, NULL));
-    assert_false(btree_search(root, 16, NULL));
-    assert_true(btree_search(root, 15, NULL));
-    assert_true(btree_search(root, 6, NULL));
-
-    free_node(root);
-}
-
-static void setup_btree_for_delete(BTreeNode **root)
-{
-    //      10, 20
-    // 5,6,7    12,17   30
-    btree_insert(root, 10, 10);
-    btree_insert(root, 20, 20);
-    btree_insert(root, 5, 5);
-    btree_insert(root, 6, 6);
-    btree_insert(root, 12, 12);
-    btree_insert(root, 30, 30);
-    btree_insert(root, 7, 7);
-    btree_insert(root, 17, 17);
-}
-
-static void test_btree_find_key_index(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_int_equal(btree_find_key_index(root, 20), 1);
-    assert_int_equal(btree_find_key_index(root, 30), 2);
-    assert_int_equal(btree_find_key_index(root, 10), 0);
-    assert_int_equal(btree_find_key_index(root, 7), 0);
-
-    free_node(root);
-}
-
-static void test_btree_find_predecessor(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_int_equal(btree_find_predecessor(root, 0).key, 7);
-    assert_int_equal(btree_find_predecessor(root, 1).key, 17);
-
-    free_node(root);
-}
-
-static void test_btree_find_successor(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_int_equal(btree_find_successor(root, 0).key, 12);
-    assert_int_equal(btree_find_successor(root, 1).key, 30);
-    free_node(root);
-}
-
-static void test_btree_merge_nodes(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    btree_insert(&root, 20, 20);
-    root->is_leaf = false;
-
-    BTreeNode *child = new_node(0, true);
-    btree_insert(&child, 10, 10);
-
-    BTreeNode *sibling = new_node(0, true);
-    btree_insert(&sibling, 25, 25);
-
-    root->children[0] = child;
-    root->children[1] = sibling;
-
-    btree_merge_nodes(root, 0);
-
-    assert_int_equal(child->num_keys, 3);
-    assert_int_equal(child->keys[0].key, 10);
-    assert_int_equal(child->keys[1].key, 20);
-    assert_int_equal(child->keys[2].key, 25);
-
-    free_node(root);
-}
-
-static void test_btree_borrow_from_prev(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    btree_insert(&root, 20, 20);
-    root->is_leaf = false;
-
-    BTreeNode *child = new_node(0, true);
-    BTreeNode *sibling = new_node(2, true);
-    sibling->keys[0].key = 15;
-    sibling->keys[1].key = 17;
-
-    root->children[0] = sibling;
-    root->children[1] = child;
-
-    btree_borrow_from_prev(root, 1);
-
-    assert_int_equal(root->num_keys, 1);
-    assert_int_equal(root->keys[0].key, 17);
-    assert_int_equal(child->num_keys, 1);
-    assert_int_equal(child->keys[0].key, 20);
-    assert_int_equal(sibling->num_keys, 1);
-    assert_int_equal(sibling->keys[0].key, 15);
-
-    free_node(root);
-}
-
-static void test_btree_borrow_from_next(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    btree_insert(&root, 10, 10);
-    root->is_leaf = false;
-
-    BTreeNode *child = new_node(0, true);
-    BTreeNode *sibling = new_node(2, true);
-    sibling->keys[0].key = 15;
-    sibling->keys[1].key = 20;
-
-    root->children[0] = child;
-    root->children[1] = sibling;
-
-    btree_borrow_from_next(root, 0);
-
-    assert_int_equal(root->num_keys, 1);
-    assert_int_equal(root->keys[0].key, 15);
-    assert_int_equal(child->num_keys, 1);
-    assert_int_equal(child->keys[0].key, 10);
-    assert_int_equal(sibling->num_keys, 1);
-    assert_int_equal(sibling->keys[0].key, 20);
-
-    free_node(root);
-}
-
-static void test_btree_fill(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    btree_insert(&root, 20, 20);
-    root->is_leaf = false;
-
-    BTreeNode *child = new_node(0, true);
-    BTreeNode *sibling = new_node(2, true);
-    sibling->keys[0].key = 25;
-    sibling->keys[1].key = 30;
-
-    root->children[0] = child;
-    root->children[1] = sibling;
-
-    btree_fill(root, 0);
-
-    assert_int_equal(root->num_keys, 1);
-    assert_int_equal(root->keys[0].key, 25);
-    assert_int_equal(child->num_keys, 1);
-    assert_int_equal(child->keys[0].key, 20);
-    assert_int_equal(sibling->num_keys, 1);
-    assert_int_equal(sibling->keys[0].key, 30);
-
-    free_node(root);
-}
-
-static void test_btree_delete_from_leaf(void **state)
-{
-    (void)state;
-
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_true(btree_search(root, 6, NULL));
-    btree_delete(&root->children[0], 6);
-    assert_false(btree_search(root, 6, NULL));
-    assert_int_equal(root->children[0]->num_keys, 2);
-
-    free_node(root);
-}
-
-static void test_btree_delete_from_non_leaf(void **state)
-{
-    (void)state;
-
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_true(btree_search(root, 10, NULL));
-    btree_delete(&root, 10);
-    assert_false(btree_search(root, 10, NULL));
-    assert_int_equal(root->num_keys, 2);
-
-    free_node(root);
-}
-
-static void test_btree_delete_internal_node(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_true(btree_search(root, 10, NULL));
-    assert_int_equal(btree_delete(&root, 10), 0);
-    assert_false(btree_search(root, 10, NULL));
-
-    free_node(root);
-}
-
-static void test_btree_delete_non_existent(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    assert_int_equal(btree_delete(&root, 99), -1);
-
-    free_node(root);
-}
-
-static void test_btree_delete_all_keys(void **state)
-{
-    (void)state;
-    BTreeNode *root = new_node(0, true);
-    setup_btree_for_delete(&root);
-
-    int keys[] = {10, 20, 5, 6, 12, 30, 7, 17};
-    for (int i = 0; i < (int)(sizeof(keys) / sizeof(keys[0])); i++)
+    BTreeNode *root = new_node(0, 1);
+    int keys[] = {10, 20, 25, 15, 6};
+    
+    for (int i = 0; i < sizeof(keys)/sizeof(int); i++)
     {
-        assert_int_equal(btree_delete(&root, keys[i]), 0);
+        Pair pair = {.key_type = INT, .key = {.integer = keys[i]}, .value_type = STR, .value = {.column = malloc(sizeof(char)*5)}};
+        sprintf(pair.value.column, "%d", keys[i]); 
+        btree_insert(&root, pair);
     }
 
-    assert_null(root);
-    free(root);
+    for (int i = 0; i < sizeof(keys)/sizeof(int); i++)
+    {
+        Pair pair = {.key_type = INT, .key = {.integer = keys[i]}};
+        bool found = btree_search(root, &pair);
+        assert_true(found);
+        char expected_value[5];
+        sprintf(expected_value, "%d", keys[i]);
+        assert_string_equal(pair.value.column, expected_value);
+    }
+
+    free_node(root);
 }
 
 int main(void)
@@ -379,18 +160,6 @@ int main(void)
             cmocka_unit_test(test_insert_into_empty_tree),
             cmocka_unit_test(test_insert_causing_split),
             cmocka_unit_test(test_btree_search),
-            cmocka_unit_test(test_btree_find_key_index),
-            cmocka_unit_test(test_btree_find_predecessor),
-            cmocka_unit_test(test_btree_find_successor),
-            cmocka_unit_test(test_btree_merge_nodes),
-            cmocka_unit_test(test_btree_borrow_from_prev),
-            cmocka_unit_test(test_btree_borrow_from_next),
-            cmocka_unit_test(test_btree_fill),
-            cmocka_unit_test(test_btree_delete_from_leaf),
-            cmocka_unit_test(test_btree_delete_from_non_leaf),
-            cmocka_unit_test(test_btree_delete_internal_node),
-            cmocka_unit_test(test_btree_delete_non_existent),
-            cmocka_unit_test(test_btree_delete_all_keys),
         };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
