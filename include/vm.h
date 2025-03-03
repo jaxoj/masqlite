@@ -4,6 +4,8 @@
 #include<stdint.h>
 #include<stdbool.h>
 
+#include "btree.h"
+
 #define MAX_REGISTERS 256
 #define MAX_STACK_SIZE 1024
 #define MAX_PROGRAM_SIZE 1024
@@ -31,19 +33,20 @@ typedef enum OperationCode{
 } OperationCode;
 
 typedef struct Instruction {
-    OperationCode operation_code;
-    int32_t operand1;
-    int32_t operand2;
-    int32_t operand3;
+    OperationCode opcode;
+    int32_t opr1;
+    int32_t opr2;
+    int32_t opr3;
 } Instruction;
 
 typedef struct VM {
     int32_t registers[MAX_REGISTERS];
     int32_t stack[MAX_STACK_SIZE];
+    Instruction program[MAX_PROGRAM_SIZE];
     int32_t sp; // stack pointer
     int32_t ip; // instruction pointer
     bool halted;
-    Instruction program[MAX_PROGRAM_SIZE];
+    BTreeNode *tree;
 } VM;
 
 VM *new_vm();

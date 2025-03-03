@@ -12,6 +12,7 @@
         "cstdlib": "c",
         "stdio.h": "c",
         "any": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "sql_processor.h": "c"
     }
 }

@@ -1,6 +1,18 @@
 {
   "configurations": [
     {
+      "name": "Build masqlite",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "",
+      "preLaunchTask": "Build Project",
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
       "name": "Debug masqlite",
       "type": "cppdbg",
       "request": "launch",
@@ -26,15 +38,15 @@
   ],
   "inputs": [
     {
-        "id": "testExecutable",
-        "type": "pickString",
-        "description": "Choose the test executable to debug",
-        "options": [
-            "${workspaceFolder}/builddir/test/test_storage_engine",
-            "${workspaceFolder}/builddir/test/test_btree",
-            "${workspaceFolder}/builddir/test/test_virtual_machine"
-        ],
-        "default": "${workspaceFolder}/builddir/test/test_virtual_machine"
+      "id": "testExecutable",
+      "type": "pickString",
+      "description": "Choose the test executable to debug",
+      "options": [
+        "${workspaceFolder}/builddir/test/test_storage_engine",
+        "${workspaceFolder}/builddir/test/test_btree",
+        "${workspaceFolder}/builddir/test/test_virtual_machine"
+      ],
+      "default": "${workspaceFolder}/builddir/test/test_virtual_machine"
     }
   ],
   "version": "0.2.0"

@@ -28,7 +28,6 @@ typedef union
     BTreeNode *node;
 } Value;
 
-
 struct Pair
 {
     PairType key_type, value_type;
@@ -36,6 +35,9 @@ struct Pair
     Value value;
 };
 
+#define INT_KEY [](int key) { return (Key){.integer = key} };
+#define STR_KEY [](char *key) { return (Key){.string = key}; };
+#define KEY_OF(key) _Generic((key), int: INT_KEY, char *: STR_KEY)(key)
 bool key_greater_than(PairType type, Key key, Key than);
 bool key_less_than(PairType type, Key key, Key than);
 bool key_equal_to(PairType type, Key key, Key to);
@@ -64,6 +66,6 @@ void btree_insert_nonfull(BTreeNode *node, Pair pair);
 void btree_insert(BTreeNode **root, Pair pair);
 
 // searches for the given `key` and return whether it exsits in the list or not.
-bool btree_search(BTreeNode *root, Pair* pair);
+bool btree_search(BTreeNode *root, Pair *pair);
 
 #endif

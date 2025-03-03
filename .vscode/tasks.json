@@ -14,6 +14,7 @@
             "label": "Build Project",
             "type": "shell",
             "command": "meson compile -C builddir",
+            "dependsOn": ["Configure Meson"],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -28,7 +29,7 @@
                 "kind": "test",
                 "isDefault": true
             },
-            "problemMatcher": "$gcc"
+            "problemMatcher": ["$gcc"]
         }
     ],
     "version": "2.0.0"

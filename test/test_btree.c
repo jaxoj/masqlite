@@ -129,15 +129,15 @@ static void test_btree_search(void **state)
     (void)state;
     BTreeNode *root = new_node(0, 1);
     int keys[] = {10, 20, 25, 15, 6};
-    
-    for (int i = 0; i < sizeof(keys)/sizeof(int); i++)
+
+    for (int i = 0; i < (int) (sizeof(keys) / sizeof(int)); i++)
     {
         Pair pair = {.key_type = INT, .key = {.integer = keys[i]}, .value_type = STR, .value = {.column = malloc(sizeof(char)*5)}};
         sprintf(pair.value.column, "%d", keys[i]); 
         btree_insert(&root, pair);
     }
 
-    for (int i = 0; i < sizeof(keys)/sizeof(int); i++)
+    for (int i = 0; i < (int) (sizeof(keys) / sizeof(int)); i++)
     {
         Pair pair = {.key_type = INT, .key = {.integer = keys[i]}};
         bool found = btree_search(root, &pair);
@@ -161,5 +161,5 @@ int main(void)
             cmocka_unit_test(test_insert_causing_split),
             cmocka_unit_test(test_btree_search),
         };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, nullptr, nullptr);
 }

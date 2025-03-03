@@ -17,6 +17,7 @@ VM *new_vm()
     vm->sp = -1;
     vm->ip = 0;
     vm->halted = 0;
+    vm->tree = new_node(0, 1);
     return vm;
 }
 
@@ -39,52 +40,168 @@ void vm_run(VM *vm)
 {
     while (!vm->halted && vm->ip < MAX_PROGRAM_SIZE)
     {
-        Instruction instruction = vm->program[vm->ip];
-        switch (instruction.operation_code)
+        Instruction inst = vm->program[vm->ip];
+        switch (inst.opcode)
         {
+        /**
+         * OPERATION: OP_NOP
+         * just skips to the next instruction.
+         * PARAMS:
+         * REGISTERS:
+         */
         case OP_NOP:
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_HALT
+         * Halts the virtual machine.
+         * PARAMS:
+         * REGISTERS:
+         */
         case OP_HALT:
             vm->halted = 1;
             break;
+
+        /**
+         * OPERATION: OP_LOAD
+         * Loads a value into a register.
+         * PARAMS: opr1 (register), opr2 (value)
+         * REGISTERS: modifies opr1
+         */
         case OP_LOAD:
-            vm->registers[instruction.operand1] = instruction.operand2;
+            vm->registers[inst.opr1] = inst.opr2;
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_STORE
+         * Stores the value of one register into another.
+         * PARAMS: opr1 (source register), opr2 (destination register)
+         * REGISTERS: modifies opr2
+         */
         case OP_STORE:
             // Assuming operand2 is the address in memory
-            vm->registers[instruction.operand2] = vm->registers[instruction.operand1];
+            vm->registers[inst.opr2] = vm->registers[inst.opr1];
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_ADD
+         * Adds the value of two registers and stores the result in a register.
+         * PARAMS: opr1 (destination register), opr2 (source register), opr3 (source register)
+         * REGISTERS: modifies opr1
+         */
         case OP_ADD:
-            vm->registers[instruction.operand1] = vm->registers[instruction.operand2] + instruction.operand3;
+            vm->registers[inst.opr1] = vm->registers[inst.opr2] + inst.opr3;
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_SUB
+         * Subtracts the value of one register from another and stores the result in a register.
+         * PARAMS: opr1 (destination register), opr2 (source register), opr3 (source register)
+         * REGISTERS: modifies opr1
+         */
         case OP_SUB:
-            vm->registers[instruction.operand1] = vm->registers[instruction.operand2] - instruction.operand3;
+            vm->registers[inst.opr1] = vm->registers[inst.opr2] - inst.opr3;
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_MUL
+         * Multiplies the value of two registers and stores the result in a register.
+         * PARAMS: opr1 (destination register), opr2 (source register), opr3 (source register)
+         * REGISTERS: modifies opr1
+         */
         case OP_MUL:
-            vm->registers[instruction.operand1] = vm->registers[instruction.operand2] * instruction.operand3;
+            vm->registers[inst.opr1] = vm->registers[inst.opr2] * inst.opr3;
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_DIV
+         * Divides the value of one register by another and stores the result in a register.
+         * PARAMS: opr1 (destination register), opr2 (source register), opr3 (source register)
+         * REGISTERS: modifies opr1
+         */
         case OP_DIV:
-            vm->registers[instruction.operand1] = vm->registers[instruction.operand2] / instruction.operand3;
+            vm->registers[inst.opr1] = vm->registers[inst.opr2] / inst.opr3;
             vm->ip++;
             break;
+
+        /**
+         * OPERATION: OP_JMP
+         * Jumps to the specified instruction pointer.
+         * PARAMS: opr1 (instruction pointer)
+         * REGISTERS:
+         */
         case OP_JMP:
-            vm->ip = instruction.operand1;
+            vm->ip = inst.opr1;
             break;
+
+        /**
+         * OPERATION: OP_JMP_IF_NOT_ZERO
+         * Jumps to the specified instruction pointer if the value in a register is not zero.
+         * PARAMS: opr1 (instruction pointer), opr2 (register)
+         * REGISTERS:
+         */
+        case OP_JMP_IF_NOT_ZERO:
+        {
+
+            if (vm->registers[inst.opr2])
+            {
+                vm->ip = inst.opr1;
+            }
+            else
+            {
+                vm->ip++;
+            }
+            break;
+        }
+
+        /**
+         * OPERATION: OP_JMP_IF_ZERO
+         * Jumps to the specified instruction pointer if the value in a register is zero.
+         * PARAMS: opr1 (instruction pointer), opr2 (register)
+         * REGISTERS:
+         */
+        case OP_JMP_IF_ZERO:
+        {
+
+            if (!vm->registers[inst.opr2])
+            {
+                vm->ip = inst.opr1;
+            }
+            else
+            {
+                vm->ip++;
+            }
+            break;
+        }
+
+        /**
+         * OPERATION: OP_CALL
+         * Calls a function by jumping to its entry point and saving the current instruction pointer on the stack.
+         * PARAMS: opr1 (function entry point)
+         * REGISTERS:
+         */
         case OP_CALL:
             // Save the curret vm intraction in the stack
             vm->stack[++vm->sp] = vm->ip;
             // Jump to the function's entry point
-            vm->ip = instruction.operand1;
+            vm->ip = inst.opr1;
             break;
+
+        /**
+         * OPERATION: OP_RET
+         * Returns from a function by restoring the instruction pointer from the stack.
+         * PARAMS:
+         * REGISTERS:
+         */
         case OP_RET:
             // Return value expexted to be in regiter 0
-            // Restore the instruction pointer from the stack
+            // Restore the inst pointer from the stack
             if (vm->sp >= 0)
             {
                 vm->ip = vm->stack[vm->sp--];
