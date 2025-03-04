@@ -90,5 +90,5 @@ int main(void)
         cmocka_unit_test(test_close_database),
     };
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, nullptr, nullptr);
 }

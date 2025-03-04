@@ -4,7 +4,6 @@
 
 #define BTREE_ORDER 4
 #define MAX_PAIRS (BTREE_ORDER - 1)
-#define MIN_PAIRS (MAX_PAIRS / 2)
 
 typedef struct Pair Pair;
 typedef struct BTreeNode BTreeNode;

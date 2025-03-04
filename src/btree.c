@@ -50,7 +50,7 @@ BTreeNode *new_node(int num_pairs, bool is_leaf)
 
     for (int i = 0; i < BTREE_ORDER; i++)
     {
-        node->children[i] = NULL;
+        node->children[i] = nullptr;
     }
 
     return node;
@@ -58,7 +58,7 @@ BTreeNode *new_node(int num_pairs, bool is_leaf)
 
 void free_node(BTreeNode *node)
 {
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -80,7 +80,7 @@ void free_node(BTreeNode *node)
 void btree_split_child(BTreeNode *parent, int index)
 {
     BTreeNode *child = parent->children[index];
-    int mid = (MAX_PAIRS % 2 == 0) ? MAX_PAIRS / 2 : (MAX_PAIRS + 1) / 2;
+    int mid = (MAX_PAIRS + 1) / 2;
 
     BTreeNode *new_child = new_node(mid, child->is_leaf);
 

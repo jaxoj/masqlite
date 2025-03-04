@@ -198,5 +198,5 @@ int main(void)
         cmocka_unit_test(test_run_CALL_RET),
     };
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, nullptr, nullptr);
 }
