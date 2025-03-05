@@ -37,19 +37,27 @@ static void test_create_table_statement(void **state) {
     const Token expected_tokens[] = {{TOKEN_CREATE,                    "CREATE"},
                                      {TOKEN_TABLE,                     "TABLE"},
                                      {TOKEN_IDENTIFIER,                "users"},
+                                     {TOKEN_START_COLUMN, nullptr},
                                      {TOKEN_IDENTIFIER,                "id"},
                                      {TOKEN_TYPE,                      "INT"},
                                      {TOKEN_NOT_NULL_CONSTRAINT,       "NOT NULL"},
                                      {TOKEN_AUTO_INCREMENT_CONSTRAINT, "AUTO_INCREMENT"},
+                                     {TOKEN_END_COLUMN, nullptr},
+                                     {TOKEN_START_COLUMN, nullptr},
                                      {TOKEN_IDENTIFIER,                "name"},
                                      {TOKEN_TYPE,                      "VARCHAR"},
                                      {TOKEN_NOT_NULL_CONSTRAINT,       "NOT NULL"},
+                                     {TOKEN_END_COLUMN, nullptr},
+                                     {TOKEN_START_COLUMN, nullptr},
                                      {TOKEN_IDENTIFIER,                "age"},
                                      {TOKEN_TYPE,                      "INT"},
+                                     {TOKEN_END_COLUMN, nullptr},
+                                     {TOKEN_START_CONSTRAINT, nullptr},
                                      {TOKEN_PRIMARY_KEY_CONSTRAINT,    "PRIMARY KEY"},
                                      {TOKEN_IDENTIFIER,                "id"},
+                                     {TOKEN_END_CONSTRAINT, nullptr},
                                      {TOKEN_END_STATEMENT,             ";"},
-                                     {TOKEN_EOF,                       "\0"},
+                                     {TOKEN_EOF,          nullptr},
     };
     Lexer *lexer = new_lexer(
             "CREATE TABLE users (\nid INT NOT NULL AUTO_INCREMENT,\nname VARCHAR NOT NULL,\nage INT,\nPRIMARY KEY(id)\t\n);"
@@ -62,7 +70,7 @@ static void test_create_table_statement(void **state) {
 
     for (size_t i = 0; i < s.len; i++) {
         assert_int_equal(s.tokens[i].type, expected_tokens[i].type);
-        if (i < s.len - 1) {
+        if (s.tokens[i].value != nullptr) {
             assert_string_equal(s.tokens[i].value, expected_tokens[i].value);
         }
     }

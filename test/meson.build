@@ -35,7 +35,16 @@ sql_lexer_test = executable(
     include_directories : include_dir
 )
 
+sql_parser_sources = ['test_sql_parser.c', '../src/sql/parser.c', '../src/sql/lexer.c']
+sql_parser_test = executable(
+    'test_sql_parser',
+    sql_parser_sources,
+    dependencies : cmocka,
+    include_directories : include_dir
+)
+
 test('storage engine unit tests', storage_engine_test)
 test('btree unit tests', btree_test)
 test('virtual machine unit tests', vm_test)
 test('sql lexer unit tests', sql_lexer_test)
+test('sql parser unit tests', sql_parser_test)

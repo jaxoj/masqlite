@@ -26,7 +26,6 @@ void add_statement(Lexer *lexer) {
 }
 
 void push_token(Lexer *lexer, Token token) {
-
     Statement *statement = &lexer->statements[lexer->statements_len - 1];
     Token *new = realloc(statement->tokens, (statement->len + 1) * sizeof(Token));
     if (new == nullptr) {
@@ -114,14 +113,12 @@ void match_table(Lexer *lexer) {
 
 void match_columns(Lexer *lexer) {
     do {
-        // check if the identifier name isn't a keyword
-        // if so check if it's a constraint
-        // if so break out of the loop, if not return a syntax error.
         Token col = match_identifier(lexer);
         if (!is_keyword(col.value)) {
+            push_token(lexer, (Token){TOKEN_START_COLUMN, nullptr});
             push_token(lexer, col);
             if (col.type == TOKEN_UNKNOWN) {
-            return;
+                return;
             }
 
             Token col_type = match_type(lexer);
@@ -142,10 +139,12 @@ void match_columns(Lexer *lexer) {
             lexer->pos -= strlen(PRIMARY_KEYWORD);
             break;
         }
+        push_token(lexer, (Token){TOKEN_END_COLUMN, nullptr});
     } while (lexer->input[lexer->pos] == ',' && lexer->pos++);
 
+
     while (lexer->input[lexer->pos] != ')') {
-        match_constraints(lexer);
+        match_table_constraints(lexer);
         Token constraint = last_token(lexer);
         if (constraint.type == TOKEN_UNKNOWN) {
             return;
@@ -171,9 +170,10 @@ void match_column_constraints(Lexer *lexer) {
     }
 }
 
-void match_constraints(Lexer *lexer) {
+void match_table_constraints(Lexer *lexer) {
     skip_whitespace(lexer);
     while (lexer->input[lexer->pos] != ',' && lexer->input[lexer->pos] != ')') {
+        push_token(lexer, (Token){TOKEN_START_CONSTRAINT, nullptr});
         Token constraint = match_constraint(lexer);
         push_token(lexer, constraint);
         if (constraint.type == TOKEN_UNKNOWN) {
@@ -190,6 +190,7 @@ void match_constraints(Lexer *lexer) {
                 lexer->pos++;
                 skip_whitespace(lexer);
             }
+            push_token(lexer, (Token){TOKEN_END_CONSTRAINT, nullptr});
         }
     }
 }
